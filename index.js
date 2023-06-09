@@ -27,11 +27,24 @@ async function run() {
     await client.connect();
     
     const instructorCollection = client.db('chitroGolpoDB').collection('instructors')
+    const classCollection = client.db('chitroGolpoDB').collection('classes')
+    const userCollection = client.db('chitroGolpoDB').collection('users')
 
+    // instructors
     app.get('/instructors', async(req, res) => {
         const result = await instructorCollection.find().toArray();
         res.send(result);
     })
+
+
+    // classes
+    app.get('/classes', async(req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    })
+
+    // users
+    
 
 
     // Send a ping to confirm a successful connection
