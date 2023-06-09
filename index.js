@@ -25,26 +25,35 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    
+
     const instructorCollection = client.db('chitroGolpoDB').collection('instructors')
     const classCollection = client.db('chitroGolpoDB').collection('classes')
     const userCollection = client.db('chitroGolpoDB').collection('users')
 
-    // instructors
-    app.get('/instructors', async(req, res) => {
-        const result = await instructorCollection.find().toArray();
-        res.send(result);
+    // instructors api
+    app.get('/instructors', async (req, res) => {
+      const result = await instructorCollection.find().toArray();
+      res.send(result);
     })
 
 
-    // classes
-    app.get('/classes', async(req, res) => {
+    // classes api
+    app.get('/classes', async (req, res) => {
       const result = await classCollection.find().toArray();
       res.send(result);
     })
 
-    // users
-    
+    // users api
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: 'user already exists' })
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
@@ -59,9 +68,9 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('ChitroGolpo is running')
+  res.send('ChitroGolpo is running')
 })
 
 app.listen(port, () => {
-    console.log(`ChitroGolpo is running on port ${port}`);
+  console.log(`ChitroGolpo is running on port ${port}`);
 })
