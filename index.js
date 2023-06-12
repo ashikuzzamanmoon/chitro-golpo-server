@@ -3,13 +3,14 @@ const cors = require('cors');
 const app = express();
 const jwt=require("jsonwebtoken")
 require('dotenv').config();
+// const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors());
 app.use(express.json());
 
-// verifyJwt middlewere
+// verifyJwt middleware
 
 const verifyJwt=(req,res,next)=>{
   const authorization=req.headers.authorization;
@@ -47,15 +48,12 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const instructorCollection = client.db('chitroGolpoDB').collection('instructors')
+    
     const classCollection = client.db('chitroGolpoDB').collection('classes')
     const userCollection = client.db('chitroGolpoDB').collection('users')
+    const paymentCollection = client.db("chitroGolpoDB").collection("payments");
 
-    // instructors api
-    app.get('/instructors', async (req, res) => {
-      const result = await instructorCollection.find().toArray();
-      res.send(result);
-    })
+  
 
     // make jwt token
     app.post("/jwt",(req,res)=>{
@@ -65,7 +63,14 @@ async function run() {
       });
       res.send({token})
     })
+                                  
 
+    // classes post
+    app.post("/classes",async(req,res)=>{
+      const MyClass=req.body;
+      const result=await classCollection.insertOne(MyClass);
+      res.send(result)
+    })
 
     // classes api
     app.get('/classes', async (req, res) => {
@@ -133,7 +138,7 @@ async function run() {
       const email = req.params.email;
       const query = { email: email }
       const user = await userCollection.findOne(query);
-      const result = { admin: user?.role === 'instructor' }
+      const result = { instructor: user?.role === 'instructor' }
       res.send(result);
     })
 
@@ -150,6 +155,77 @@ async function run() {
       res.send(result);
 
     })
+
+    // // instructor email
+    // app.get("/user/instructor/:email",async(req,res)=>{
+    //   const email=req.params.email;
+    //   const query={email:email};
+    //   const user=await userCollection.findOne(query);
+    //   const result={instructor:user?.role==="instructor"};
+    //   res.send(result)
+    // })
+    // // cart
+    // app.post("/cart",async(req,res)=>{
+    //   const data=req.body;
+    //   const result=await cartCollection.insertOne(data);
+    //   res.send(result);
+    // });
+
+    // app.get("/cart/:id",async(req,res)=>{
+    //   const id=req.params.id;
+    //   const query ={_id:new ObjectId(id)};
+    //   const result=await cartCollection.findOne(query);
+    //   res.send(result)
+    // })
+    // app.get("/cart",async(req,res)=>{
+    //   const email=req.query.email;
+    //   const query={email:email};
+    //   const result=await cartCollection.find(query).toArray();
+    //   res.send(result);
+    // })
+
+    // //  intent api
+    // app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+    //   const { price } = req.body;
+    //   const amount = parseInt(price * 100);
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: 'usd',
+    //     payment_method_types: ['card']
+
+    //   });
+
+    //   res.send({
+    //     clientSecret: paymentIntent.client_secret
+    //   })
+    // })
+
+    // // payment api
+    // app.post('/payments', async (req, res) => {
+    //   const payment = req.body;
+    //   const insertResult = await paymentCollection.insertOne(payment);
+
+    //   // const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+    //   // const deleteResult = await cartCollection.deleteMany(query)
+    //   const query={_id:new ObjectId(payment.cartId)}
+    //   const deleted=await dataCollection.deleteOne(query);
+    //   const AllSeat=payment.seats-1;
+    //   const enrolled=payment.Students+1;
+    //   const filter={_id:new ObjectId(payment.classId)}
+    //   const doc={
+    //     $set:{
+    //       seats:AllSeat,
+    //       allStudents:enrolled
+    //     },
+    //   };
+    //   const update=await classes.updateOne(filter,doc)
+    //   res.send({ insertResult, deleteResult,update });
+    // })
+
+    // app.get('/payments',async(req,res)=>{
+    //   const result=await paymentCollection.find().toArray();
+    //   res.send(result)
+    // })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
