@@ -51,6 +51,7 @@ async function run() {
     
     const classCollection = client.db('chitroGolpoDB').collection('classes')
     const userCollection = client.db('chitroGolpoDB').collection('users')
+    const cartCollection=client.db('chitroGolpoDB').collection('carts')
     const paymentCollection = client.db("chitroGolpoDB").collection("payments");
 
   
@@ -73,9 +74,39 @@ async function run() {
     })
 
     // classes api
-    app.get('/classes', async (req, res) => {
-      const result = await classCollection.find().toArray();
-      res.send(result);
+    app.get('/classes/:allClass', async (req, res) => {
+      const allClass=req.params.allClass;
+      if(allClass==='true')
+      {
+        const result = await classCollection.find().toArray();
+        res.send(result);
+
+      }
+      else
+      {
+        const query={status:'approved'}
+        const result = await classCollection.find(query).toArray();
+        res.send(result);
+      }
+    })
+    app.get("/classes",async(req,res)=>{
+      const email=req.query.email;
+      const query={email:email}
+      const result=await classCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.patch("/classes/:id",async(req,res)=>{
+      const id=req.params.id;
+      const data=req.body;
+      const query={_id:new ObjectId(id)}
+      const updateDoc = {
+        $set: {
+          status:data.i===true?'approved':'denied'
+        },
+      };
+      const result=await classCollection.updateOne(query,updateDoc);
+      res.send(result)
     })
 
     // users api
@@ -156,28 +187,22 @@ async function run() {
 
     })
 
-    // // instructor email
-    // app.get("/user/instructor/:email",async(req,res)=>{
-    //   const email=req.params.email;
-    //   const query={email:email};
-    //   const user=await userCollection.findOne(query);
-    //   const result={instructor:user?.role==="instructor"};
-    //   res.send(result)
-    // })
-    // // cart
-    // app.post("/cart",async(req,res)=>{
-    //   const data=req.body;
-    //   const result=await cartCollection.insertOne(data);
-    //   res.send(result);
-    // });
 
-    // app.get("/cart/:id",async(req,res)=>{
+   
+    // // cart
+    app.post("/carts",async(req,res)=>{
+      const data=req.body;
+      const result=await cartCollection.insertOne(data);
+      res.send(result);
+    });
+
+    // app.get("/carts/:id",async(req,res)=>{
     //   const id=req.params.id;
     //   const query ={_id:new ObjectId(id)};
     //   const result=await cartCollection.findOne(query);
     //   res.send(result)
     // })
-    // app.get("/cart",async(req,res)=>{
+    // app.get("/carts",async(req,res)=>{
     //   const email=req.query.email;
     //   const query={email:email};
     //   const result=await cartCollection.find(query).toArray();
