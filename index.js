@@ -188,7 +188,6 @@ async function run() {
 
     })
 
-
    
     // // cart
     app.post("/carts",async(req,res)=>{
@@ -257,10 +256,14 @@ async function run() {
     
     })
 
-    app.get('/payments',async(req,res)=>{
-      const result=await paymentCollection.find().toArray();
+    
+    app.get('/payments/:email',async(req,res)=>{
+      const email=req.params.email;
+      const query= {email:email}
+      const result=await paymentCollection.find(query).toArray();
       res.send(result)
     })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
