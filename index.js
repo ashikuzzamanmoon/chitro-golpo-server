@@ -1,9 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+
 const jwt=require("jsonwebtoken")
 require('dotenv').config();
-// const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -85,7 +86,7 @@ async function run() {
       else
       {
         const query={status:'approved'}
-        const result = await classCollection.find(query).toArray();
+        const result = await classCollection.find(query).sort({enrolled:-1}).toArray();
         res.send(result);
       }
     })
@@ -196,12 +197,18 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/carts/:id",async(req,res)=>{
-    //   const id=req.params.id;
-    //   const query ={_id:new ObjectId(id)};
-    //   const result=await cartCollection.findOne(query);
-    //   res.send(result)
-    // })
+    app.delete("/carts/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query ={_id:new ObjectId(id)};
+      const result=await cartCollection.deleteOne(query);
+      res.send(result)
+    })
+    app.get("/carts/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query ={_id:new ObjectId(id)};
+      const result=await cartCollection.findOne(query);
+      res.send(result)
+    })
     app.get("/carts",async(req,res)=>{
       const email=req.query.email;
       const query={email:email};
@@ -210,47 +217,50 @@ async function run() {
     })
 
     // //  intent api
-    // app.post('/create-payment-intent', verifyJWT, async (req, res) => {
-    //   const { price } = req.body;
-    //   const amount = parseInt(price * 100);
-    //   const paymentIntent = await stripe.paymentIntents.create({
-    //     amount: amount,
-    //     currency: 'usd',
-    //     payment_method_types: ['card']
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
 
-    //   });
+      });
 
-    //   res.send({
-    //     clientSecret: paymentIntent.client_secret
-    //   })
-    // })
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
 
     // // payment api
-    // app.post('/payments', async (req, res) => {
-    //   const payment = req.body;
-    //   const insertResult = await paymentCollection.insertOne(payment);
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const insertResult = await paymentCollection.insertOne(payment);
 
-    //   // const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
-    //   // const deleteResult = await cartCollection.deleteMany(query)
-    //   const query={_id:new ObjectId(payment.cartId)}
-    //   const deleted=await dataCollection.deleteOne(query);
-    //   const AllSeat=payment.seats-1;
-    //   const enrolled=payment.Students+1;
-    //   const filter={_id:new ObjectId(payment.classId)}
-    //   const doc={
-    //     $set:{
-    //       seats:AllSeat,
-    //       allStudents:enrolled
-    //     },
-    //   };
-    //   const update=await classes.updateOne(filter,doc)
-    //   res.send({ insertResult, deleteResult,update });
-    // })
 
-    // app.get('/payments',async(req,res)=>{
-    //   const result=await paymentCollection.find().toArray();
-    //   res.send(result)
-    // })
+      const query={_id:new ObjectId(payment.myCartId)}
+      const deleted=await cartCollection.deleteOne(query);
+
+      const AllSeat=payment.seat-1;
+      const enrolled=parseInt(payment.enrolledStudents)+1;
+      const filter={_id:new ObjectId(payment.classId)}
+      const doc={
+        $set:{
+          seat:AllSeat,
+          enrolled:enrolled
+        },
+      };
+      const update=await classCollection.updateOne(filter,doc)
+
+      res.send({ insertResult, deleted,update });
+    
+    })
+
+    app.get('/payments',async(req,res)=>{
+      const result=await paymentCollection.find().toArray();
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
